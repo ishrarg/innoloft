@@ -1,9 +1,8 @@
 ﻿using System.ComponentModel;
 
-namespace InnoloftAPI.Controllers
+namespace InnoloftAPI.Models
 {
-    public partial class EventsController
-    {
+   
         public class EventInfo
         {
             public int EventID { get; set; }
@@ -20,5 +19,5 @@ namespace InnoloftAPI.Controllers
         }
 
 
-    }
+    
 }

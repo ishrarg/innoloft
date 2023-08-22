@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.Eventing.Reader;
+using InnoloftAPI;
+using InnoloftAPI.DTO;
+using InnoloftAPI.Models;
 
 namespace InnoloftAPI.Controllers
 {
@@ -10,36 +14,68 @@ namespace InnoloftAPI.Controllers
     {
 
         [HttpGet("[action]/{UserID}")]
-        public IEnumerable<EventInfo> GetCurrentUserEvents(int UserID)
+        public IEnumerable<EventInfo> GetUserEvents(int UserID)
         {
-            checkDBExists();
+            DBHelper.checkDBExists();
             sqlLiteDbContext c = new sqlLiteDbContext();
             return c.Events.Where(x => x.AuthorID == UserID).ToList();
         }
-        [HttpGet]
-        public IEnumerable<EventInfo> Get()
+        //[HttpGet]
+        //public IEnumerable<EventInfo> Get()
+        //{
+        //    DBHelper.checkDBExists();
+        //    sqlLiteDbContext c = new sqlLiteDbContext();
+        //    return c.Events.ToList();
+        //}
+
+        [HttpGet("[action]/{EventID}")]
+        public EventDTO GetEvent(int EventID)
         {
-            checkDBExists();
+            DBHelper.checkDBExists();
             sqlLiteDbContext c = new sqlLiteDbContext();
-            return c.Events.ToList();
+            var eventInfo = (from eve in c.Events
+                     where eve.EventID == EventID
+                     select eve).FirstOrDefault();
+            var o = (from i in c.Users where i.id == eventInfo.AuthorID select i).FirstOrDefault();
+            var retVal = new EventDTO { EventDetails = eventInfo, OrganizerDetails = o };
+            return retVal;
         }
-        private void checkDBExists()
+
+        [HttpPost("[action]")]
+        public void UpdateEvent(EventInfo p)
         {
-            string dbName = "innodb.db";
-            if (!System.IO.File.Exists(dbName))
+            sqlLiteDbContext c = new sqlLiteDbContext();
+            var eventObj = new EventInfo();
+            if (p.EventID > 0)
             {
-                sqlLiteDbContext c = new sqlLiteDbContext();
-                c.Database.EnsureCreated();
-                if (c.Events.ToList().Count == 0)
-                {
-                    c.Events.AddRange(new EventInfo[] {
-                    new EventInfo(){EventID=1, AuthorID=1, EventName="Product Launch", Description = "Product launch company event organized by XYZ ", EventAddress="Event Address", IsOnline=false, EventStartDateTime=new DateTime(2023,8,1,15,0,0),EventEndDateTime=new DateTime(2023,8,1,16,0,0), TimeZone="GMT +01:00" },
-                    new EventInfo(){EventID=2,  AuthorID=1, EventName="Product Awareness Programe", Description = "Product Awareness Programe organized by XYZ ", EventAddress="Company Location", IsOnline=false, EventStartDateTime=new DateTime(2023,8,31,10,0,0), EventEndDateTime= new DateTime(2023,8,31,11,0,0) , TimeZone="GMT +01:00" },
-                });
-                }
+                eventObj = c.Events.Where(x => x.EventID == p.EventID).FirstOrDefault();
+            }
+            eventObj.EventName = p.EventName;
+            eventObj.Description = p.Description;
+            eventObj.EventStartDateTime = p.EventStartDateTime;
+            eventObj.EventEndDateTime = p.EventEndDateTime;
+            eventObj.AuthorID = p.AuthorID;
+            eventObj.IsOnline = p.IsOnline;
+            eventObj.TimeZone = p.TimeZone;
+            eventObj.EventAddress = p.EventAddress;
+
+            if (p.EventID == 0)
+            {
+                c.Events.Add(eventObj);
+            }
+            c.SaveChanges();
+        }
+        [HttpPost("[action]")]
+        public void RemoveEvent(EventInfo p)
+        {
+            sqlLiteDbContext c = new sqlLiteDbContext();
+            var eventObj = new EventInfo();
+            if (p.EventID > 0)
+            {
+                eventObj = c.Events.Where(x => x.EventID == p.EventID).FirstOrDefault();
+                c.Events.Remove(eventObj);
                 c.SaveChanges();
             }
         }
-
     }
 }
